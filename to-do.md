@@ -1,0 +1,4 @@
+- [] Armazenar tempo para geração de transcrição por vídeo, bem como modelo utilizado para gerá-la, tamanho e outros detalhes pertinentes.
+- [] Adicionar módulo com puppeteer/playwright para coleta de dados dos vídeos do yt diretamente pela aplicação (likes, comentários, views).
+- [] Adicionar no excel dados coletados pelo módulo com puppeteer/playwright.
+- [] Personalizar vídeos.txt permitindo passar outras listas de vídeos.
