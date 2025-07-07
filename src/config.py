@@ -15,8 +15,8 @@ EXCEL_OUTPUT_DIR = BASE_DIR / "excel_output"
 VIDEOS_FILE = BASE_DIR / "videos.txt"
 
 # Configurações de transcrição
-DEFAULT_WHISPER_MODEL = "medium"           # Tamanho do modelo Whisper original
-DEFAULT_FASTER_WHISPER_MODEL = "large-v3"     # Tamanho do modelo Faster-Whisper
+DEFAULT_WHISPER_MODEL = "tiny"           # Tamanho do modelo Whisper original
+DEFAULT_FASTER_WHISPER_MODEL = "tiny"     # Tamanho do modelo Faster-Whisper
 USE_FASTER_WHISPER_BY_DEFAULT = True       # Se True, usa Faster-Whisper por padrão
 LANGUAGE = "pt"                            # Idioma padrão para transcrição
 

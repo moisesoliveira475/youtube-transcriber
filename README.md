@@ -28,6 +28,34 @@ Ferramenta para transcrição automática de vídeos do YouTube, dividindo o con
 pip install -r requirements.txt
 ```
 
+## Passos obrigatórios para funcionamento
+
+1. **Criar ambiente virtual Python (venv):**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+2. **Instalar dependências principais:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   > **Atenção:** Para a API, instale as dependências separadas em `api/requirements.txt`:
+   > ```bash
+   > pip install -r api/requirements.txt
+   > ```
+3. **Instalar Google Cloud SDK (gcloud):**
+   - Siga as instruções em: https://cloud.google.com/sdk/docs/install
+4. **Autenticar no Google Cloud:**
+   ```bash
+   gcloud auth application-default login
+   ```
+5. **Configurar CUDA (para uso de GPU):**
+   - Baixe e instale: https://developer.nvidia.com/cuda-downloads
+6. **Configurar cuDNN (para uso de GPU):**
+   - Baixe e instale: https://developer.nvidia.com/cudnn-downloads
+
+> **Observação:** CUDA/cuDNN são necessários apenas para aceleração por GPU. Para uso apenas em CPU, esses passos podem ser ignorados, mas a transcrição será mais lenta.
+
 ## Uso
 
 ### 1. Adicione URLs do YouTube ou arquivos locais

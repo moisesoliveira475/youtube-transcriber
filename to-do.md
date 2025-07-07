@@ -1,3 +1,8 @@
+- [] Implementar diagnóstico automático de transcrição antes do processamento principal.
+  - Detectar e avisar se o áudio está vazio, corrompido, silencioso ou com duração zero.
+  - Rodar um teste rápido de transcrição (ex: primeiros 5-10 segundos) e exibir mensagem clara se nenhum texto for gerado.
+  - Exibir sugestões automáticas para o usuário: uso do modelo tiny, conversão do áudio, teste com áudio de exemplo, ou correção de dependências.
+  - Exemplo de cenário: Usuário baixa um vídeo do YouTube, tenta transcrever e recebe "Nenhum segmento gerado". O sistema deve sugerir causas prováveis (áudio ruim, modelo pesado, dependências) e possíveis soluções, evitando frustração e perda de tempo.
 - [] Armazenar tempo para geração de transcrição por vídeo, bem como modelo utilizado para gerá-la, tamanho e outros detalhes pertinentes.
 - [] Adicionar módulo com puppeteer/playwright para coleta de dados dos vídeos do yt diretamente pela aplicação (likes, comentários, views).
 - [] Adicionar no excel dados coletados pelo módulo com puppeteer/playwright.
