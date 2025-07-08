@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import VideoManager from "@/components/VideoManager";
 import { ProcessingStatus } from "@/components/ProcessingStatus";
 import { useApp } from "@/context/AppContext";
+import { VideoManager } from "@/components/VideoManager";
 
 export function ProcessPage() {
   const { state } = useApp();

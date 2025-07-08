@@ -300,3 +300,23 @@ class ContentClassifier:
                 df.at[index, 'Explicação_IA'] = classification['explicação']
         
         return df
+    
+    def analyze_excel_file(self, input_file: str, output_file: str = "", sheet_name: str = 'Sheet1', target_person: Optional[str] = None, with_explanation: bool = False, resume: bool = True) -> str:
+        """
+        Wrapper síncrono para classify_excel_file (async).
+        Executa a classificação e salva o resultado em output_file.
+        Retorna o caminho do arquivo de saída.
+        """
+        import asyncio
+        if not output_file:
+            # Gera nome de saída padrão
+            output_file = input_file.replace('.xlsx', '_ai_analysis.xlsx')
+        # Chama a função async de forma síncrona
+        asyncio.run(self.classify_excel_file(
+            input_file=input_file,
+            output_file=output_file,
+            sheet_name=sheet_name,
+            target_person=target_person,
+            resume_existing=resume
+        ))
+        return output_file

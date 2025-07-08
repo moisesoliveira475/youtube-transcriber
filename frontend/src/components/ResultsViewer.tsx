@@ -16,8 +16,12 @@ import {
   AlertTriangle,
   CheckCircle,
   File,
-  Brain
+  Brain,
+  Loader2
 } from "lucide-react";
+import { useJobStatus } from "@/hooks/useJobStatus";
+import { Alert } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 interface TranscriptionFile {
   id: string;
@@ -32,34 +36,6 @@ interface TranscriptionFile {
   modified: number;
 }
 
-// Dados mockados para demonstração (fallback)
-const mockFiles: TranscriptionFile[] = [
-  {
-    id: "3mYf_Urh96w",
-    title: "Vídeo de exemplo 1",
-    date: "2025-05-28",
-    duration: "15:30",
-    status: "completed",
-    hasAiAnalysis: true,
-    filePath: "/excel_output/transcricoes_2025-05-28_12-56-03_ai_analysis.xlsx",
-    filename: "transcricoes_2025-05-28_12-56-03_ai_analysis.xlsx",
-    size: 1024000,
-    modified: Date.now() / 1000
-  },
-  {
-    id: "5qhTDNejKcU",
-    title: "Vídeo de exemplo 2", 
-    date: "2025-05-27",
-    duration: "08:45",
-    status: "completed",
-    hasAiAnalysis: false,
-    filePath: "/excel_output/transcricoes_2025-05-27_14-42-12.xlsx",
-    filename: "transcricoes_2025-05-27_14-42-12.xlsx",
-    size: 512000,
-    modified: Date.now() / 1000 - 86400
-  }
-];
-
 export function ResultsViewer() {
   const { state, dispatch } = useApp();
   const [selectedTranscription, setSelectedTranscription] = useState<TranscriptionFile | null>(null);
@@ -68,10 +44,15 @@ export function ResultsViewer() {
   // Use API hooks
   const {
     excelFiles,
+    transcriptFiles,
     isLoading,
     error,
     downloadExcel
   } = useFiles();
+
+  // Suporte a status de job em andamento
+  const jobId = state.jobs?.[0]?.id || null; // Pega o primeiro job ativo
+  const { jobStatus } = useJobStatus(jobId);
 
   // Update context with file data
   useEffect(() => {
@@ -90,21 +71,30 @@ export function ResultsViewer() {
   // Convert API files to display format
   const convertToTranscriptionFiles = (): TranscriptionFile[] => {
     if (!excelFiles || excelFiles.length === 0) {
-      return mockFiles; // Fallback to mock data
+      return []; // Retorna array vazio se não há dados da API
     }
     
-    return excelFiles.map(file => {
+    // Create a map of available video IDs from transcript files
+    const availableVideoIds = transcriptFiles?.map(file => 
+      file.video_id || file.filename.replace('.txt', '').replace('.json', '')
+    ) || [];
+    
+    return excelFiles.map((file, index) => {
       const isAiAnalysis = file.is_ai_analysis || file.filename.includes('_ai_analysis');
       const dateMatch = file.filename.match(/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
-      const videoIdMatch = file.filename.match(/^([^_]+)_/);
+      
+      // Use the corresponding video ID from available transcripts
+      // This is a simple mapping - in a real scenario, we'd parse Excel content to find video IDs
+      const videoId = availableVideoIds[index % availableVideoIds.length] || 
+        file.filename.replace('.xlsx', '').replace('_ai_analysis', '');
       
       return {
-        id: videoIdMatch?.[1] || file.filename.split('.')[0],
-        title: file.filename.replace('.xlsx', '').replace('_ai_analysis', ''),
+        id: videoId, // Use video ID that actually has transcription
+        title: `${file.filename.replace('.xlsx', '').replace('_ai_analysis', '')} (${videoId})`,
         date: dateMatch?.[1]?.split('_')[0] || new Date(file.modified * 1000).toISOString().split('T')[0],
         status: "completed" as const,
         hasAiAnalysis: isAiAnalysis,
-        filePath: file.path,
+        filePath: file.path || `/excel_output/${file.filename}`,
         filename: file.filename,
         size: file.size,
         modified: file.modified
@@ -151,6 +141,21 @@ export function ResultsViewer() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {jobStatus && jobStatus.status === "processing" && (
+        <Alert className="mb-4 flex items-center gap-4 border-blue-200 bg-blue-50">
+          <Loader2 className="animate-spin h-5 w-5 text-blue-600" />
+          <div>
+            <div className="font-medium">Processando...</div>
+            <div className="text-sm text-muted-foreground">
+              {jobStatus.current_step || "Aguarde, sua transcrição ou análise está em andamento."}
+            </div>
+            {typeof jobStatus.progress === "number" && (
+              <Progress value={jobStatus.progress} className="mt-2" />
+            )}
+          </div>
+        </Alert>
+      )}
+      
       <StatsOverview />
       
       <Card>

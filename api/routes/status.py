@@ -80,3 +80,10 @@ def cancel_job(job_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@bp.route('/status', methods=['GET'])
+def api_status():
+    """
+    Health check para /api/status
+    """
+    return {'status': 'ok'}

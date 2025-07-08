@@ -1,9 +1,7 @@
 """
 Endpoints para gerenciamento de arquivos
 """
-import os
 from flask import Blueprint, jsonify, send_file
-from pathlib import Path
 from src.config import EXCEL_OUTPUT_DIR, TRANSCRIPT_DIR, AUDIO_DIR
 
 bp = Blueprint('files', __name__)
@@ -206,5 +204,31 @@ def get_files_info():
             'info': info
         }), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/files/audio', methods=['GET'])
+def list_audio_files():
+    """
+    Lista arquivos de áudio
+    """
+    try:
+        from src.config import AUDIO_DIR
+        files = []
+        if AUDIO_DIR.exists():
+            for file_path in AUDIO_DIR.glob("*"):
+                if file_path.is_file():
+                    stat = file_path.stat()
+                    files.append({
+                        'filename': file_path.name,
+                        'size': stat.st_size,
+                        'modified': stat.st_mtime
+                    })
+        files.sort(key=lambda x: x['modified'], reverse=True)
+        return jsonify({
+            'success': True,
+            'files': files,
+            'count': len(files)
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

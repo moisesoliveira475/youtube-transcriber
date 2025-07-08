@@ -26,5 +26,113 @@
       "processed_urls": 1
     },
     "error": null
+  },
+  "6633e2a7-7f86-4571-bfb0-aff5a462e90e": {
+    "id": "6633e2a7-7f86-4571-bfb0-aff5a462e90e",
+    "type": "transcription",
+    "status": "completed",
+    "progress": 100,
+    "created_at": "2025-07-08T11:27:50.125824",
+    "updated_at": "2025-07-08T11:27:57.735067",
+    "data": {
+      "urls": [
+        "https://youtu.be/abc"
+      ],
+      "options": {},
+      "total_urls": 1
+    },
+    "current_step": "Finishing up...",
+    "result": {
+      "success": true,
+      "excel_file": null,
+      "processed_urls": 1
+    },
+    "error": null
+  },
+  "369e175f-24e4-480b-b2bd-c4f8a752c823": {
+    "id": "369e175f-24e4-480b-b2bd-c4f8a752c823",
+    "type": "transcription",
+    "status": "completed",
+    "progress": 100,
+    "created_at": "2025-07-08T11:29:11.245659",
+    "updated_at": "2025-07-08T11:30:04.625235",
+    "data": {
+      "urls": [
+        "https://www.youtube.com/watch?v=f_aIzGIbSXM"
+      ],
+      "options": {},
+      "total_urls": 1
+    },
+    "current_step": "Finishing up...",
+    "result": {
+      "success": true,
+      "excel_file": null,
+      "processed_urls": 1
+    },
+    "error": null
+  },
+  "4bbe37b6-7005-4343-9d6b-a715fdc4a50f": {
+    "id": "4bbe37b6-7005-4343-9d6b-a715fdc4a50f",
+    "type": "transcription",
+    "status": "completed",
+    "progress": 100,
+    "created_at": "2025-07-08T11:40:12.599484",
+    "updated_at": "2025-07-08T11:40:12.718624",
+    "data": {
+      "urls": [
+        "https://www.youtube.com/watch?v=f_aIzGIbSXM"
+      ],
+      "options": {},
+      "total_urls": 1
+    },
+    "current_step": "Finishing up...",
+    "steps": [
+      {
+        "id": "download",
+        "name": "Download do Áudio",
+        "status": "completed",
+        "message": "Download concluído."
+      },
+      {
+        "id": "transcription",
+        "name": "Transcrição",
+        "status": "completed",
+        "message": "Transcrição concluída."
+      },
+      {
+        "id": "split",
+        "name": "Divisão em Blocos",
+        "status": "completed",
+        "message": "Divisão concluída."
+      },
+      {
+        "id": "excel",
+        "name": "Exportação Excel",
+        "status": "completed",
+        "message": "Exportação concluída."
+      },
+      {
+        "id": "ai-analysis",
+        "name": "Análise IA (Opcional)",
+        "status": "pending",
+        "message": "Análise IA não solicitada."
+      }
+    ],
+    "logs": [
+      "[2025-07-08T11:40:12.601022] Job iniciado para transcrição de vídeos.",
+      "[2025-07-08T11:40:12.609017] Arquivo videos.txt criado com 1 URLs.",
+      "[2025-07-08T11:40:12.610377] Iniciando download do áudio.",
+      "[2025-07-08T11:40:12.711643] Download do áudio concluído.",
+      "[2025-07-08T11:40:12.712977] Iniciando transcrição.",
+      "[2025-07-08T11:40:12.714439] Dividindo transcrição em blocos.",
+      "[2025-07-08T11:40:12.715931] Exportando para Excel.",
+      "[2025-07-08T11:40:12.717829] Processamento finalizado."
+    ],
+    "result": {
+      "success": true,
+      "excel_file": null,
+      "processed_urls": 1
+    },
+    "error": null
   }
 }

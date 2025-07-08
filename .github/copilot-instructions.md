@@ -409,3 +409,9 @@ npm run build
 - **Resume Functionality**: Continue interrupted analysis operations
 - **Incremental Saving**: Progress preserved during long analysis sessions
 - **Rate Limiting**: Proper handling of API quotas and limits
+
+## New rules for development
+
+- Whenever you implement a new feature on the frontend, backend or hooks, create automated tests using Vitest (for frontend/TypeScript).
+- The tests should cover the main flows, states and expected errors of the new feature.
+- The code is only considered ready if it is accompanied by automated tests.

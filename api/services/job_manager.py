@@ -44,6 +44,8 @@ class SimpleJobManager:
             'updated_at': datetime.now().isoformat(),
             'data': data,
             'current_step': 'Initializing...',
+            'steps': [],  # Lista de steps detalhados
+            'logs': [],   # Lista de logs textuais
             'result': None,
             'error': None
         }
@@ -53,6 +55,37 @@ class SimpleJobManager:
         
         self._save_jobs()
         return job_id
+
+    def add_step(self, job_id: str, step_id: str, name: str, status: str = "pending", message: str = ""):
+        """Adiciona ou atualiza um step do job"""
+        if job_id not in self.jobs:
+            return False
+        with self.lock:
+            job = self.jobs[job_id]
+            steps = job.setdefault('steps', [])
+            # Atualiza se já existe, senão adiciona
+            for s in steps:
+                if s['id'] == step_id:
+                    s.update({"status": status, "message": message})
+                    break
+            else:
+                steps.append({"id": step_id, "name": name, "status": status, "message": message})
+        self._save_jobs()
+        return True
+
+    def update_step_status(self, job_id: str, step_id: str, status: str, message: str = ""):
+        """Atualiza status de um step existente"""
+        return self.add_step(job_id, step_id, name=step_id, status=status, message=message)
+
+    def add_log(self, job_id: str, message: str):
+        """Adiciona uma mensagem de log ao job"""
+        if job_id not in self.jobs:
+            return False
+        with self.lock:
+            logs = self.jobs[job_id].setdefault('logs', [])
+            logs.append(f"[{datetime.now().isoformat()}] {message}")
+        self._save_jobs()
+        return True
     
     def update_job(self, job_id: str, status: Optional[str] = None, 
                    step: Optional[str] = None, progress: Optional[int] = None,

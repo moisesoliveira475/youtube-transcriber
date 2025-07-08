@@ -1,26 +1,12 @@
+import { Loader2, Play, Plus, Trash2, Youtube } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { useApp } from "@/context/AppContext";
-import { useTranscription } from "@/lib/hooks";
 import { toast } from "sonner";
-import {
-  Plus,
-  Trash2,
-  Play,
-  Youtube,
-  FileText,
-  Brain,
-  Settings,
-  AlertCircle,
-  CheckCircle2,
-  Loader2
-} from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { useTranscription } from "../lib/hooks";
+import { useJobStatus } from "../hooks/useJobStatus";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { ProcessingStatus, getDefaultSteps } from "./ProcessingStatus";
 
 // URL validation helper
 const extractVideoId = (url: string): string | null => {
@@ -45,441 +31,130 @@ const validateYouTubeUrl = (url: string): boolean => {
 };
 
 export function VideoManager() {
-  const { state, addUrl, removeUrl, clearUrls, updateSettings } = useApp();
-  const { startTranscription, isProcessing } = useTranscription();
-  
-  const [currentUrl, setCurrentUrl] = useState("");
-  const [targetPerson, setTargetPerson] = useState(state.settings.targetPerson || "");
-  const [bulkUrls, setBulkUrls] = useState("");
-  const [showBulkInput, setShowBulkInput] = useState(false);
+  const { state, addUrl, removeUrl, clearUrls } = useApp();
+  const { startTranscription, isProcessing, jobId, error } = useTranscription();
+  const [inputUrl, setInputUrl] = useState("");
+  const [errorMsg, setError] = useState<string | null>(null);
+  const [showStatus, setShowStatus] = useState(false);
 
-  // Add single URL
+  // Poll status do job
+  const { jobStatus } = useJobStatus(jobId, 2000);
+
+  // Permite múltiplas URLs coladas de uma vez (uma por linha)
   const handleAddUrl = () => {
-    if (!currentUrl.trim()) {
-      toast.error("Por favor, insira uma URL");
+    const urls = inputUrl
+      .split(/\n|,/)
+      .map(u => u.trim())
+      .filter(Boolean);
+    const invalid = urls.filter(u => !validateYouTubeUrl(u));
+    if (invalid.length) {
+      setError(
+        invalid.length === 1
+          ? `URL inválida: ${invalid[0]}`
+          : `Algumas URLs são inválidas: ${invalid.join(", ")}`
+      );
       return;
     }
+    urls.forEach(u => addUrl(u));
+    setInputUrl("");
+    setError(null);
+  };
 
-    if (!validateYouTubeUrl(currentUrl.trim())) {
-      toast.error("URL do YouTube inválida");
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setInputUrl(e.target.value);
+    setError(null);
+  };
+
+  const handleRemoveUrl = (idx: number) => removeUrl(idx);
+  const handleClear = () => clearUrls();
+
+  const handleStart = async () => {
+    if (!state.urls.length) {
+      toast.error("Adicione pelo menos uma URL válida.");
       return;
     }
-
-    const videoId = extractVideoId(currentUrl.trim());
-    if (!videoId) {
-      toast.error("Não foi possível extrair o ID do vídeo");
-      return;
-    }
-
-    // Check if URL already exists
-    const urlExists = state.urls.some(url => extractVideoId(url) === videoId);
-    if (urlExists) {
-      toast.error("Este vídeo já foi adicionado");
-      return;
-    }
-
-    addUrl(currentUrl.trim());
-    setCurrentUrl("");
-    toast.success("URL adicionada com sucesso");
-  };
-
-  // Add bulk URLs
-  const handleAddBulkUrls = () => {
-    if (!bulkUrls.trim()) {
-      toast.error("Por favor, insira as URLs");
-      return;
-    }
-
-    const urls = bulkUrls
-      .split('\n')
-      .map(url => url.trim())
-      .filter(url => url && !url.startsWith('//'))
-      .filter(url => url.length > 0);
-
-    if (urls.length === 0) {
-      toast.error("Nenhuma URL válida encontrada");
-      return;
-    }
-
-    let addedCount = 0;
-    let invalidCount = 0;
-    let duplicateCount = 0;
-
-    urls.forEach(url => {
-      if (!validateYouTubeUrl(url)) {
-        invalidCount++;
-        return;
-      }
-
-      const videoId = extractVideoId(url);
-      if (!videoId) {
-        invalidCount++;
-        return;
-      }
-
-      // Check if URL already exists
-      const urlExists = state.urls.some(existingUrl => extractVideoId(existingUrl) === videoId);
-      if (urlExists) {
-        duplicateCount++;
-        return;
-      }
-
-      addUrl(url);
-      addedCount++;
-    });
-
-    let message = `${addedCount} URL(s) adicionada(s)`;
-    if (invalidCount > 0) message += `, ${invalidCount} inválida(s)`;
-    if (duplicateCount > 0) message += `, ${duplicateCount} duplicada(s)`;
-
-    if (addedCount > 0) {
-      toast.success(message);
-    } else {
-      toast.error(message);
-    }
-
-    setBulkUrls("");
-    setShowBulkInput(false);
-  };
-
-  // Remove URL
-  const handleRemoveUrl = (index: number) => {
-    removeUrl(index);
-    toast.success("URL removida");
-  };
-
-  // Clear all URLs
-  const handleClearUrls = () => {
-    clearUrls();
-    toast.success("Todas as URLs foram removidas");
-  };
-
-  // Update target person
-  const handleTargetPersonChange = (value: string) => {
-    setTargetPerson(value);
-    updateSettings({ targetPerson: value });
-  };
-
-  // Start processing
-  const handleStartProcessing = async () => {
-    if (state.urls.length === 0) {
-      toast.error("Adicione pelo menos uma URL para processar");
-      return;
-    }
-
-    const options = {
-      only_excel: false,
-      playlist_mode: state.settings.playlistMode,
-      ignore_existing: state.settings.ignoreExisting,
-      use_whisper: state.settings.useWhisper,
-      ai_analysis: state.settings.aiAnalysis,
-      target_person: targetPerson || state.settings.targetPerson,
-      with_explanation: state.settings.withExplanation
-    };
-
-    try {
-      await startTranscription(state.urls, options);
-      toast.success("Processamento iniciado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao iniciar processamento");
+    setShowStatus(true);
+    const res = await startTranscription(state.urls, {});
+    if (!res.success) {
+      toast.error(res.error || "Erro ao iniciar processamento");
+      setShowStatus(false);
     }
   };
 
-  // Quick action buttons
-  const handleOnlyExcel = async () => {
-    const options = {
-      only_excel: true,
-      playlist_mode: false,
-      ignore_existing: false,
-      use_whisper: state.settings.useWhisper,
-      ai_analysis: false,
-      target_person: targetPerson || state.settings.targetPerson
-    };
-
-    try {
-      await startTranscription([], options);
-      toast.success("Geração de Excel iniciada!");
-    } catch (error) {
-      toast.error("Erro ao gerar Excel");
-    }
-  };
-
-  const handleOnlyAiAnalysis = async () => {
-    const options = {
-      only_excel: false,
-      playlist_mode: false,
-      ignore_existing: false,
-      use_whisper: false,
-      ai_analysis: true,
-      target_person: targetPerson || state.settings.targetPerson,
-      with_explanation: state.settings.withExplanation
-    };
-
-    try {
-      await startTranscription([], options);
-      toast.success("Análise IA iniciada!");
-    } catch (error) {
-      toast.error("Erro ao iniciar análise IA");
-    }
-  };
+  // Monta steps e logs para o componente de status
+  const steps = (jobStatus && (jobStatus as any).steps) || getDefaultSteps();
+  const logs = (jobStatus && (jobStatus as any).logs) || [];
+  const isJobProcessing = isProcessing || (jobStatus && ["processing", "pending"].includes(jobStatus.status));
 
   return (
-    <div className="space-y-6">
-      {/* URL Input Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Youtube className="h-5 w-5 text-red-600" />
-            Gerenciar URLs do YouTube
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Single URL Input */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                placeholder="Cole aqui a URL do YouTube..."
-                value={currentUrl}
-                onChange={(e) => setCurrentUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
-              />
-            </div>
-            <Button onClick={handleAddUrl} disabled={isProcessing}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar
+    <Card>
+      <CardHeader>
+        <CardTitle>Gerenciar vídeos do YouTube</CardTitle>
+        <div className="text-xs text-muted-foreground mt-1">URLs adicionadas: <span className="font-bold">{state.urls.length}</span></div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row gap-2 items-end mb-4">
+          <textarea
+            placeholder="Cole uma ou mais URLs do YouTube (uma por linha)"
+            value={inputUrl}
+            onChange={handleInputChange}
+            disabled={isProcessing}
+            data-testid="input-url"
+            rows={2}
+            className="w-full resize-none border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:bg-muted"
+          />
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button onClick={handleAddUrl} disabled={isProcessing || !inputUrl} className="w-full md:w-auto">
+              <Plus className="w-4 h-4 mr-1" /> Adicionar
+            </Button>
+            <Button variant="secondary" onClick={handleClear} disabled={isProcessing || !state.urls.length} className="w-full md:w-auto">
+              <Trash2 className="w-4 h-4 mr-1" /> Limpar
             </Button>
           </div>
-
-          {/* Bulk Input Toggle */}
-          <div className="flex items-center gap-2">
-            <Switch
-              id="bulk-mode"
-              checked={showBulkInput}
-              onCheckedChange={setShowBulkInput}
-            />
-            <Label htmlFor="bulk-mode">Adicionar múltiplas URLs</Label>
-          </div>
-
-          {/* Bulk Input */}
-          {showBulkInput && (
-            <div className="space-y-2">
-              <Label htmlFor="bulk-urls">URLs em lote (uma por linha)</Label>
-              <Textarea
-                id="bulk-urls"
-                placeholder="https://www.youtube.com/watch?v=abc123&#10;https://www.youtube.com/watch?v=def456&#10;// Comentários iniciados com // são ignorados"
-                value={bulkUrls}
-                onChange={(e) => setBulkUrls(e.target.value)}
-                rows={4}
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleAddBulkUrls} disabled={isProcessing}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Lote
+        </div>
+        {errorMsg && <div className="text-red-500 text-sm mb-2">{errorMsg}</div>}
+        <div className="mb-4 bg-muted/60 rounded-md p-2 border">
+          <ul className="space-y-1 max-h-40 overflow-y-auto">
+            {state.urls.map((url, idx) => (
+              <li key={url} className="flex items-center gap-2 group hover:bg-muted/80 rounded px-2 py-1 transition">
+                <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                <span className="truncate max-w-xs flex-1 text-sm">{url}</span>
+                <Button size="icon" variant="ghost" onClick={() => handleRemoveUrl(idx)} disabled={isProcessing} className="opacity-60 group-hover:opacity-100">
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setBulkUrls("");
-                  setShowBulkInput(false);
-                }}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
+              </li>
+            ))}
+            {!state.urls.length && (
+              <li className="text-xs text-muted-foreground px-2 py-1">Nenhuma URL adicionada.</li>
+            )}
+          </ul>
+        </div>
+        <Button
+          onClick={handleStart}
+          disabled={isProcessing || !state.urls.length}
+          className="w-full h-12 text-base font-semibold"
+        >
+          {isProcessing ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Play className="w-4 h-4 mr-2" />
           )}
-
-          {/* URLs List */}
-          {state.urls.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>URLs Adicionadas ({state.urls.length})</Label>
-                <Button 
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleClearUrls}
-                  disabled={isProcessing}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Limpar Todas
-                </Button>
-              </div>
-              
-              <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
-                {state.urls.map((url, index) => {
-                  const videoId = extractVideoId(url);
-                  const isValid = videoId !== null;
-                  
-                  return (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                      {isValid ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-red-600" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{url}</p>
-                        {videoId && (
-                          <p className="text-xs text-muted-foreground">ID: {videoId}</p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveUrl(index)}
-                        disabled={isProcessing}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Configuration Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Configurações Rápidas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Target Person */}
-          <div className="space-y-2">
-            <Label htmlFor="target-person">Pessoa Alvo para Análise IA</Label>
-            <Input
-              id="target-person"
-              placeholder="Nome da pessoa para análise (ex: João Silva)"
-              value={targetPerson}
-              onChange={(e) => handleTargetPersonChange(e.target.value)}
+          {isProcessing ? "Processando" : "Iniciar processamento"}
+        </Button>
+        {/* Exibe status detalhado do processamento */}
+        {showStatus && isJobProcessing && (
+          <div className="mt-6">
+            <ProcessingStatus
+              isProcessing={isJobProcessing}
+              currentVideoId={state.urls[0]}
+              steps={steps}
+              logs={logs}
             />
           </div>
-
-          {/* Quick Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="playlist-mode">Modo Playlist</Label>
-              <Switch
-                id="playlist-mode"
-                checked={state.settings.playlistMode}
-                onCheckedChange={(checked) =>
-                  updateSettings({ playlistMode: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="ignore-existing">Ignorar Existentes</Label>
-              <Switch
-                id="ignore-existing"
-                checked={state.settings.ignoreExisting}
-                onCheckedChange={(checked) =>
-                  updateSettings({ ignoreExisting: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="ai-analysis">Análise IA</Label>
-              <Switch
-                id="ai-analysis"
-                checked={state.settings.aiAnalysis}
-                onCheckedChange={(checked) =>
-                  updateSettings({ aiAnalysis: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="use-whisper">Usar Whisper Original</Label>
-              <Switch
-                id="use-whisper"
-                checked={state.settings.useWhisper}
-                onCheckedChange={(checked) =>
-                  updateSettings({ useWhisper: checked })
-                }
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Ações de Processamento
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Full Processing */}
-            <Button 
-              className="h-16 flex flex-col gap-1"
-              onClick={handleStartProcessing}
-              disabled={isProcessing || state.urls.length === 0}
-            >
-              {isProcessing ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-              <span className="text-sm">Processar Completo</span>
-              <span className="text-xs opacity-70">Download + Transcrição + Excel</span>
-            </Button>
-
-            {/* Only Excel */}
-            <Button 
-              variant="outline"
-              className="h-16 flex flex-col gap-1"
-              onClick={handleOnlyExcel}
-              disabled={isProcessing}
-            >
-              <FileText className="h-5 w-5" />
-              <span className="text-sm">Apenas Excel</span>
-              <span className="text-xs opacity-70">De transcrições existentes</span>
-            </Button>
-
-            {/* Only AI Analysis */}
-            <Button 
-              variant="outline"
-              className="h-16 flex flex-col gap-1"
-              onClick={handleOnlyAiAnalysis}
-              disabled={isProcessing}
-            >
-              <Brain className="h-5 w-5" />
-              <span className="text-sm">Apenas Análise IA</span>
-              <span className="text-xs opacity-70">De arquivos Excel existentes</span>
-            </Button>
-          </div>
-
-          {/* Processing Status Info */}
-          {isProcessing && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-sm text-blue-800">
-                  Processamento em andamento... Verifique a aba "Resultados" para acompanhar o progresso.
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Quick Help */}
-          <Separator className="my-4" />
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p><strong>Dicas:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>URLs aceitas: youtube.com/watch?v=, youtu.be/, ou IDs diretos</li>
-              <li>Use "Modo Playlist" para processar listas completas</li>
-              <li>"Ignorar Existentes" pula vídeos já processados</li>
-              <li>Configure a "Pessoa Alvo" para análises IA mais precisas</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+        {/* Exibe erro se houver */}
+        {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+      </CardContent>
+    </Card>
   );
 }
-
-export default VideoManager;

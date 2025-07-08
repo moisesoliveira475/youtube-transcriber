@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VideoManager } from "./VideoManager";
 import { ResultsViewer } from "./ResultsViewer";
 import { AdvancedSettings } from "./AdvancedSettings";
 import { 
@@ -10,6 +9,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { VideoManager } from "./VideoManager";
 
 export function MainTabs() {
   return (
